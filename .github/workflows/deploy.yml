@@ -66,7 +66,7 @@ jobs:
           location_secondary   = "${{ vars.LOCATION_SECONDARY || 'westus2' }}"
           environment          = "${{ vars.ENVIRONMENT || 'dev' }}"
           apim_sku_name        = "${{ vars.APIM_SKU || 'Developer' }}"
-          redis_enterprise_sku = "${{ vars.REDIS_SKU || 'Balanced_B0' }}"
+          redis_enterprise_sku = "${{ vars.REDIS_SKU || 'Enterprise_E10-2' }}"
           EOF
 
       - name: Terraform Init

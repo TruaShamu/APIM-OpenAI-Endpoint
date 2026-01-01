@@ -112,13 +112,18 @@ variable "openai_deployments" {
 }
 
 # -----------------------------------------------------------------------------
-# Azure Managed Redis (Enterprise) Configuration
+# Azure Redis Enterprise Configuration
 # -----------------------------------------------------------------------------
 
 variable "redis_enterprise_sku" {
-  description = "SKU for Azure Managed Redis Enterprise (Balanced_B0, Balanced_B1, etc.)"
+  description = "SKU for Azure Redis Enterprise. Format: <tier>-<capacity>. Cheapest: Enterprise_E10-2 (~$250/mo)"
   type        = string
-  default     = "Balanced_B0"
+  default     = "Enterprise_E10-2"
+
+  validation {
+    condition = can(regex("^(Enterprise_E(5|10|20|50|100|200|400)|EnterpriseFlash_F(300|700|1500))-[0-9]+$", var.redis_enterprise_sku))
+    error_message = "SKU must be in format '<tier>-<capacity>', e.g., 'Enterprise_E10-2'. Valid tiers: Enterprise_E5/E10/E20/E50/E100/E200/E400, EnterpriseFlash_F300/F700/F1500."
+  }
 }
 
 # -----------------------------------------------------------------------------
