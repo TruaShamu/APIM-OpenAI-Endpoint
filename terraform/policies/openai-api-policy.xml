@@ -1,0 +1,111 @@
+<policies>
+  <inbound>
+    <base />
+    
+    <!-- Rate Limiting -->
+    <rate-limit-by-key 
+      calls="${rate_limit_calls}" 
+      renewal-period="${rate_limit_period}" 
+      counter-key="@(context.Subscription?.Key ?? &quot;anonymous&quot;)"
+      increment-condition="@(context.Response.StatusCode >= 200 &amp;&amp; context.Response.StatusCode &lt; 400)" />
+    
+    <!-- Token Limit (approximate based on request size) -->
+    <quota-by-key 
+      calls="1000000" 
+      bandwidth="${token_limit_bandwidth}" 
+      renewal-period="60"
+      counter-key="@(context.Subscription?.Key ?? &quot;anonymous&quot;)" />
+    
+    <!-- Managed Identity Authentication -->
+    <authentication-managed-identity 
+      resource="https://cognitiveservices.azure.com" 
+      client-id="${managed_identity_client_id}"
+      output-token-variable-name="managed-id-access-token" />
+    
+    <set-header name="Authorization" exists-action="override">
+      <value>@("Bearer " + (string)context.Variables["managed-id-access-token"])</value>
+    </set-header>
+    
+    <!-- Remove api-key header (we use managed identity) -->
+    <set-header name="api-key" exists-action="delete" />
+    
+    <!-- Round-robin load balancing between backends -->
+    <set-variable name="backendIndex" value="@(new Random().Next(0, 2))" />
+    <choose>
+      <when condition="@((int)context.Variables[&quot;backendIndex&quot;] == 0)">
+        <set-backend-service backend-id="${backend_primary_name}" />
+        <set-variable name="selectedBackend" value="primary" />
+      </when>
+      <otherwise>
+        <set-backend-service backend-id="${backend_secondary_name}" />
+        <set-variable name="selectedBackend" value="secondary" />
+      </otherwise>
+    </choose>
+    
+    <!-- Cache Lookup (for non-streaming requests) -->
+    <cache-lookup vary-by-developer="false" vary-by-developer-groups="false" downstream-caching-type="none">
+      <vary-by-query-parameter>api-version</vary-by-query-parameter>
+      <vary-by-header>Accept-Encoding</vary-by-header>
+    </cache-lookup>
+  </inbound>
+  
+  <backend>
+    <!-- Retry on 429/5xx errors with failover to other backend -->
+    <retry condition="@(context.Response.StatusCode == 429 || context.Response.StatusCode >= 500)" count="3" interval="1" first-fast-retry="true">
+      <choose>
+        <when condition="@((string)context.Variables[&quot;selectedBackend&quot;] == &quot;primary&quot;)">
+          <set-backend-service backend-id="${backend_secondary_name}" />
+          <set-variable name="selectedBackend" value="secondary" />
+        </when>
+        <otherwise>
+          <set-backend-service backend-id="${backend_primary_name}" />
+          <set-variable name="selectedBackend" value="primary" />
+        </otherwise>
+      </choose>
+      <forward-request buffer-request-body="true" />
+    </retry>
+  </backend>
+  
+  <outbound>
+    <base />
+    
+    <!-- Cache Store (cache successful responses for 5 minutes) -->
+    <cache-store duration="300" cache-response="true" />
+    
+    <!-- Add custom headers for observability -->
+    <set-header name="X-LLM-Gateway-Cache" exists-action="override">
+      <value>@(context.Response.Headers.GetValueOrDefault("X-Cache","MISS"))</value>
+    </set-header>
+    <set-header name="X-LLM-Gateway-Backend" exists-action="override">
+      <value>@((string)context.Variables.GetValueOrDefault("selectedBackend", "unknown"))</value>
+    </set-header>
+  </outbound>
+  
+  <on-error>
+    <base />
+    
+    <!-- Log errors to Application Insights -->
+    <trace source="LLM-Gateway-Error" severity="error">
+      <message>@(context.LastError.Message)</message>
+      <metadata name="Error Source" value="@(context.LastError.Source)" />
+      <metadata name="Error Reason" value="@(context.LastError.Reason)" />
+    </trace>
+    
+    <!-- Return friendly error response -->
+    <return-response>
+      <set-status code="@(context.Response.StatusCode)" reason="@(context.Response.StatusReason)" />
+      <set-header name="Content-Type" exists-action="override">
+        <value>application/json</value>
+      </set-header>
+      <set-body>@{
+        return new JObject(
+          new JProperty("error", new JObject(
+            new JProperty("code", context.Response.StatusCode.ToString()),
+            new JProperty("message", context.LastError?.Message ?? "An error occurred"),
+            new JProperty("request_id", context.RequestId.ToString())
+          ))
+        ).ToString();
+      }</set-body>
+    </return-response>
+  </on-error>
+</policies>
