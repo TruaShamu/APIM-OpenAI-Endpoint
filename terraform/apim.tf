@@ -371,31 +371,18 @@ resource "azurerm_api_management_api_operation" "images_generations" {
 }
 
 # -----------------------------------------------------------------------------
-# API-level Policy (Load Balancing, Rate Limiting, Caching, Auth)
+# API-level Policy - MANUAL UPLOAD
 # -----------------------------------------------------------------------------
-
-resource "azurerm_api_management_api_policy" "openai" {
-  api_name            = azurerm_api_management_api.openai.name
-  api_management_name = local.apim_name
-  resource_group_name = local.apim_resource_group_name
-
-  xml_content = templatefile("${path.module}/policies/openai-api-policy.xml", {
-    rate_limit_calls           = var.rate_limit_calls
-    rate_limit_period          = var.rate_limit_period
-    token_limit_bandwidth      = var.token_limit_per_minute * 4
-    managed_identity_client_id = azurerm_user_assigned_identity.apim.client_id
-    backend_primary_name       = azurerm_api_management_backend.openai_primary.name
-    backend_secondary_name     = azurerm_api_management_backend.openai_secondary.name
-  })
-
-  depends_on = [
-    azurerm_api_management_api.openai,
-    azurerm_api_management_backend.openai_primary,
-    azurerm_api_management_backend.openai_secondary,
-    azurerm_api_management_named_value.redis_endpoint,
-    azapi_update_resource.apim_identity
-  ]
-}
+# Policy is managed manually via Azure Portal.
+# Upload the policy XML from: policies/openai-api-policy.xml
+# Replace the ${...} placeholders with actual values:
+#   - ${rate_limit_calls} = var.rate_limit_calls (default: 100)
+#   - ${rate_limit_period} = var.rate_limit_period (default: 60)
+#   - ${token_limit_bandwidth} = var.token_limit_per_minute * 4 (default: 40000)
+#   - ${managed_identity_client_id} = check output: apim_managed_identity_client_id
+#   - ${backend_primary_name} = openai-backend-primary
+#   - ${backend_secondary_name} = openai-backend-secondary
+# -----------------------------------------------------------------------------
 
 # -----------------------------------------------------------------------------
 # Diagnostic Settings for APIM (only for new APIM)
