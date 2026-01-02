@@ -55,3 +55,39 @@ import {
   to = azurerm_api_management_api.openai
   id = "/subscriptions/${local.sub_id}/resourceGroups/${local.apim_rg}/providers/Microsoft.ApiManagement/service/${local.apim_svc}/apis/azure-openai-api;rev=1"
 }
+
+import {
+  to = azurerm_api_management_named_value.redis_password
+  id = "/subscriptions/${local.sub_id}/resourceGroups/${local.apim_rg}/providers/Microsoft.ApiManagement/service/${local.apim_svc}/namedValues/redis-password"
+}
+
+import {
+  to = azurerm_api_management_product_api.openai
+  id = "/subscriptions/${local.sub_id}/resourceGroups/${local.apim_rg}/providers/Microsoft.ApiManagement/service/${local.apim_svc}/products/openai-product/apis/azure-openai-api"
+}
+
+import {
+  to = azurerm_api_management_api_operation.chat_completions
+  id = "/subscriptions/${local.sub_id}/resourceGroups/${local.apim_rg}/providers/Microsoft.ApiManagement/service/${local.apim_svc}/apis/azure-openai-api/operations/chat-completions"
+}
+
+import {
+  to = azurerm_api_management_api_operation.completions
+  id = "/subscriptions/${local.sub_id}/resourceGroups/${local.apim_rg}/providers/Microsoft.ApiManagement/service/${local.apim_svc}/apis/azure-openai-api/operations/completions"
+}
+
+import {
+  to = azurerm_api_management_api_operation.embeddings
+  id = "/subscriptions/${local.sub_id}/resourceGroups/${local.apim_rg}/providers/Microsoft.ApiManagement/service/${local.apim_svc}/apis/azure-openai-api/operations/embeddings"
+}
+
+import {
+  to = azurerm_api_management_api_operation.images_generations
+  id = "/subscriptions/${local.sub_id}/resourceGroups/${local.apim_rg}/providers/Microsoft.ApiManagement/service/${local.apim_svc}/apis/azure-openai-api/operations/images-generations"
+}
+
+# API Policy - may need to be imported if it was partially created
+import {
+  to = azurerm_api_management_api_policy.openai
+  id = "/subscriptions/${local.sub_id}/resourceGroups/${local.apim_rg}/providers/Microsoft.ApiManagement/service/${local.apim_svc}/apis/azure-openai-api"
+}
