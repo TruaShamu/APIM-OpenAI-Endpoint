@@ -4,21 +4,21 @@
     
     <!-- Rate Limiting -->
     <rate-limit-by-key 
-      calls="${rate_limit_calls}" 
-      renewal-period="${rate_limit_period}" 
+      calls="100" 
+      renewal-period="60" 
       counter-key="@(context.Subscription?.Key ?? &quot;anonymous&quot;)" />
     
     <!-- Token Limit (approximate based on request size) -->
     <quota-by-key 
       calls="1000000" 
-      bandwidth="${token_limit_bandwidth}" 
+      bandwidth="40000" 
       renewal-period="60"
       counter-key="@(context.Subscription?.Key ?? &quot;anonymous&quot;)" />
     
     <!-- Managed Identity Authentication -->
     <authentication-managed-identity 
       resource="https://cognitiveservices.azure.com" 
-      client-id="${managed_identity_client_id}"
+      client-id="test-client-id"
       output-token-variable-name="managed-id-access-token" />
     
     <set-header name="Authorization" exists-action="override">
@@ -32,11 +32,11 @@
     <set-variable name="backendIndex" value="@(new Random().Next(0, 2))" />
     <choose>
       <when condition="@((int)context.Variables[&quot;backendIndex&quot;] == 0)">
-        <set-backend-service backend-id="${backend_primary_name}" />
+        <set-backend-service backend-id="openai-backend-primary" />
         <set-variable name="selectedBackend" value="primary" />
       </when>
       <otherwise>
-        <set-backend-service backend-id="${backend_secondary_name}" />
+        <set-backend-service backend-id="openai-backend-secondary" />
         <set-variable name="selectedBackend" value="secondary" />
       </otherwise>
     </choose>
@@ -49,11 +49,11 @@
     <retry condition="@(context.Response.StatusCode == 429 || context.Response.StatusCode >= 500)" count="3" interval="1" first-fast-retry="true">
       <choose>
         <when condition="@((string)context.Variables[&quot;selectedBackend&quot;] == &quot;primary&quot;)">
-          <set-backend-service backend-id="${backend_secondary_name}" />
+          <set-backend-service backend-id="openai-backend-secondary" />
           <set-variable name="selectedBackend" value="secondary" />
         </when>
         <otherwise>
-          <set-backend-service backend-id="${backend_primary_name}" />
+          <set-backend-service backend-id="openai-backend-primary" />
           <set-variable name="selectedBackend" value="primary" />
         </otherwise>
       </choose>
@@ -98,3 +98,4 @@
     </return-response>
   </on-error>
 </policies>
+
