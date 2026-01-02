@@ -9,7 +9,7 @@
 locals {
   subscription_id = "ecaa20e2-0528-4f9f-91fd-73fc465828a1"
   rg_name         = "rg-llm-gateway"
-  existing_suffix = "f6n9qm"
+  existing_suffix = "0jdcfd"
 }
 
 # Resource Group
@@ -60,11 +60,8 @@ import {
   id = "/subscriptions/${local.subscription_id}/resourceGroups/${local.rg_name}/providers/Microsoft.CognitiveServices/accounts/oai-llm-gateway-secondary-${local.existing_suffix}/deployments/gpt-4o-mini"
 }
 
-# API Management
-import {
-  to = azurerm_api_management.main
-  id = "/subscriptions/${local.subscription_id}/resourceGroups/${local.rg_name}/providers/Microsoft.ApiManagement/service/apim-llm-gateway-${local.existing_suffix}"
-}
+# API Management - SKIPPED: Resource is in Failed state, needs to be deleted and recreated
+# Delete with: az apim delete --name apim-llm-gateway-0jdcfd --resource-group rg-llm-gateway --yes
 
 # Random string suffix - needs special handling
 # The random_string resource needs to be imported with the actual value

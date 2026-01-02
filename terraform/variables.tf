@@ -48,8 +48,26 @@ variable "tags" {
 # Azure API Management Configuration
 # -----------------------------------------------------------------------------
 
+variable "use_existing_apim" {
+  description = "Whether to use an existing APIM instance instead of creating a new one"
+  type        = bool
+  default     = true
+}
+
+variable "existing_apim_name" {
+  description = "Name of the existing APIM instance (required if use_existing_apim is true)"
+  type        = string
+  default     = "apim-raly"
+}
+
+variable "existing_apim_resource_group" {
+  description = "Resource group of the existing APIM instance"
+  type        = string
+  default     = "rg-prod-core"
+}
+
 variable "apim_name" {
-  description = "Name of the API Management instance"
+  description = "Name of the API Management instance (used if creating new)"
   type        = string
   default     = "apim-llm-gateway"
 }

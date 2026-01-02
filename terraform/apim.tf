@@ -10,10 +10,17 @@
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-# API Management Instance
+# API Management Instance (Use Existing or Create New)
 # -----------------------------------------------------------------------------
 
-resource "azurerm_api_management" "main" {
+data "azurerm_api_management" "existing" {
+  count               = var.use_existing_apim ? 1 : 0
+  name                = var.existing_apim_name
+  resource_group_name = var.existing_apim_resource_group
+}
+
+resource "azurerm_api_management" "new" {
+  count               = var.use_existing_apim ? 0 : 1
   name                = "${var.apim_name}-${local.suffix}"
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
@@ -32,24 +39,26 @@ resource "azurerm_api_management" "main" {
   ]
 }
 
+locals {
+  # Unified reference to APIM regardless of new/existing
+  apim_name                = var.use_existing_apim ? data.azurerm_api_management.existing[0].name : azurerm_api_management.new[0].name
+  apim_resource_group_name = var.use_existing_apim ? data.azurerm_api_management.existing[0].resource_group_name : azurerm_api_management.new[0].resource_group_name
+  apim_id                  = var.use_existing_apim ? data.azurerm_api_management.existing[0].id : azurerm_api_management.new[0].id
+}
+
 # -----------------------------------------------------------------------------
 # Application Insights Logger
 # -----------------------------------------------------------------------------
 
 resource "azurerm_api_management_logger" "appinsights" {
   name                = "appinsights-logger"
-  api_management_name = azurerm_api_management.main.name
-  resource_group_name = azurerm_resource_group.main.name
+  api_management_name = local.apim_name
+  resource_group_name = local.apim_resource_group_name
   resource_id         = azurerm_application_insights.main.id
 
   application_insights {
     instrumentation_key = azurerm_application_insights.main.instrumentation_key
   }
-
-  depends_on = [
-    azurerm_api_management.main,
-    azurerm_application_insights.main
-  ]
 }
 
 # -----------------------------------------------------------------------------
@@ -61,30 +70,24 @@ resource "azurerm_api_management_logger" "appinsights" {
 
 resource "azurerm_api_management_named_value" "redis_endpoint" {
   name                = "redis-endpoint"
-  api_management_name = azurerm_api_management.main.name
-  resource_group_name = azurerm_resource_group.main.name
+  api_management_name = local.apim_name
+  resource_group_name = local.apim_resource_group_name
   display_name        = "redis-endpoint"
   value               = "https://${azapi_resource.redis.name}.${azurerm_resource_group.main.location}.redis.azure.net:10000"
   secret              = false
 
-  depends_on = [
-    azurerm_api_management.main,
-    azapi_resource.redis
-  ]
+  depends_on = [azapi_resource.redis]
 }
 
 resource "azurerm_api_management_named_value" "redis_password" {
   name                = "redis-password"
-  api_management_name = azurerm_api_management.main.name
-  resource_group_name = azurerm_resource_group.main.name
+  api_management_name = local.apim_name
+  resource_group_name = local.apim_resource_group_name
   display_name        = "redis-password"
   value               = jsondecode(data.azapi_resource_action.redis_keys.output).primaryKey
   secret              = true
 
-  depends_on = [
-    azurerm_api_management.main,
-    data.azapi_resource_action.redis_keys
-  ]
+  depends_on = [data.azapi_resource_action.redis_keys]
 }
 
 # -----------------------------------------------------------------------------
@@ -93,32 +96,26 @@ resource "azurerm_api_management_named_value" "redis_password" {
 
 resource "azurerm_api_management_named_value" "managed_identity_client_id" {
   name                = "managed-identity-client-id"
-  api_management_name = azurerm_api_management.main.name
-  resource_group_name = azurerm_resource_group.main.name
+  api_management_name = local.apim_name
+  resource_group_name = local.apim_resource_group_name
   display_name        = "managed-identity-client-id"
   value               = azurerm_user_assigned_identity.apim.client_id
-
-  depends_on = [azurerm_api_management.main]
 }
 
 resource "azurerm_api_management_named_value" "openai_primary_endpoint" {
   name                = "openai-primary-endpoint"
-  api_management_name = azurerm_api_management.main.name
-  resource_group_name = azurerm_resource_group.main.name
+  api_management_name = local.apim_name
+  resource_group_name = local.apim_resource_group_name
   display_name        = "openai-primary-endpoint"
   value               = azurerm_cognitive_account.openai_primary.endpoint
-
-  depends_on = [azurerm_api_management.main]
 }
 
 resource "azurerm_api_management_named_value" "openai_secondary_endpoint" {
   name                = "openai-secondary-endpoint"
-  api_management_name = azurerm_api_management.main.name
-  resource_group_name = azurerm_resource_group.main.name
+  api_management_name = local.apim_name
+  resource_group_name = local.apim_resource_group_name
   display_name        = "openai-secondary-endpoint"
   value               = azurerm_cognitive_account.openai_secondary.endpoint
-
-  depends_on = [azurerm_api_management.main]
 }
 
 # -----------------------------------------------------------------------------
@@ -127,14 +124,13 @@ resource "azurerm_api_management_named_value" "openai_secondary_endpoint" {
 
 resource "azurerm_api_management_backend" "openai_primary" {
   name                = "openai-backend-primary"
-  api_management_name = azurerm_api_management.main.name
-  resource_group_name = azurerm_resource_group.main.name
+  api_management_name = local.apim_name
+  resource_group_name = local.apim_resource_group_name
   protocol            = "http"
   url                 = "${azurerm_cognitive_account.openai_primary.endpoint}openai"
   description         = "Azure OpenAI - Primary Region (${var.location_primary})"
 
   depends_on = [
-    azurerm_api_management.main,
     azurerm_cognitive_account.openai_primary,
     azurerm_role_assignment.apim_openai_primary
   ]
@@ -142,14 +138,13 @@ resource "azurerm_api_management_backend" "openai_primary" {
 
 resource "azurerm_api_management_backend" "openai_secondary" {
   name                = "openai-backend-secondary"
-  api_management_name = azurerm_api_management.main.name
-  resource_group_name = azurerm_resource_group.main.name
+  api_management_name = local.apim_name
+  resource_group_name = local.apim_resource_group_name
   protocol            = "http"
   url                 = "${azurerm_cognitive_account.openai_secondary.endpoint}openai"
   description         = "Azure OpenAI - Secondary Region (${var.location_secondary})"
 
   depends_on = [
-    azurerm_api_management.main,
     azurerm_cognitive_account.openai_secondary,
     azurerm_role_assignment.apim_openai_secondary
   ]
@@ -165,8 +160,8 @@ resource "azurerm_api_management_backend" "openai_secondary" {
 
 resource "azurerm_api_management_product" "openai" {
   product_id            = "openai-product"
-  api_management_name   = azurerm_api_management.main.name
-  resource_group_name   = azurerm_resource_group.main.name
+  api_management_name   = local.apim_name
+  resource_group_name   = local.apim_resource_group_name
   display_name          = "Azure OpenAI API"
   description           = "Access to Azure OpenAI models through the LLM Gateway"
   subscription_required = true
@@ -174,8 +169,6 @@ resource "azurerm_api_management_product" "openai" {
   subscriptions_limit   = 100
   published             = true
   terms                 = "By subscribing, you agree to the usage policies and rate limits."
-
-  depends_on = [azurerm_api_management.main]
 }
 
 # -----------------------------------------------------------------------------
@@ -184,8 +177,8 @@ resource "azurerm_api_management_product" "openai" {
 
 resource "azurerm_api_management_api" "openai" {
   name                  = "azure-openai-api"
-  api_management_name   = azurerm_api_management.main.name
-  resource_group_name   = azurerm_resource_group.main.name
+  api_management_name   = local.apim_name
+  resource_group_name   = local.apim_resource_group_name
   revision              = "1"
   display_name          = "Azure OpenAI API"
   path                  = "openai"
@@ -197,16 +190,14 @@ resource "azurerm_api_management_api" "openai" {
     header = "api-key"
     query  = "subscription-key"
   }
-
-  depends_on = [azurerm_api_management.main]
 }
 
 # Link API to Product
 resource "azurerm_api_management_product_api" "openai" {
   api_name            = azurerm_api_management_api.openai.name
   product_id          = azurerm_api_management_product.openai.product_id
-  api_management_name = azurerm_api_management.main.name
-  resource_group_name = azurerm_resource_group.main.name
+  api_management_name = local.apim_name
+  resource_group_name = local.apim_resource_group_name
 
   depends_on = [
     azurerm_api_management_api.openai,
@@ -221,8 +212,8 @@ resource "azurerm_api_management_product_api" "openai" {
 resource "azurerm_api_management_api_operation" "chat_completions" {
   operation_id        = "chat-completions"
   api_name            = azurerm_api_management_api.openai.name
-  api_management_name = azurerm_api_management.main.name
-  resource_group_name = azurerm_resource_group.main.name
+  api_management_name = local.apim_name
+  resource_group_name = local.apim_resource_group_name
   display_name        = "Creates a completion for the chat message"
   method              = "POST"
   url_template        = "/deployments/{deployment-id}/chat/completions"
@@ -256,8 +247,8 @@ resource "azurerm_api_management_api_operation" "chat_completions" {
 resource "azurerm_api_management_api_operation" "completions" {
   operation_id        = "completions"
   api_name            = azurerm_api_management_api.openai.name
-  api_management_name = azurerm_api_management.main.name
-  resource_group_name = azurerm_resource_group.main.name
+  api_management_name = local.apim_name
+  resource_group_name = local.apim_resource_group_name
   display_name        = "Creates a completion"
   method              = "POST"
   url_template        = "/deployments/{deployment-id}/completions"
@@ -291,8 +282,8 @@ resource "azurerm_api_management_api_operation" "completions" {
 resource "azurerm_api_management_api_operation" "embeddings" {
   operation_id        = "embeddings"
   api_name            = azurerm_api_management_api.openai.name
-  api_management_name = azurerm_api_management.main.name
-  resource_group_name = azurerm_resource_group.main.name
+  api_management_name = local.apim_name
+  resource_group_name = local.apim_resource_group_name
   display_name        = "Get embeddings"
   method              = "POST"
   url_template        = "/deployments/{deployment-id}/embeddings"
@@ -326,8 +317,8 @@ resource "azurerm_api_management_api_operation" "embeddings" {
 resource "azurerm_api_management_api_operation" "images_generations" {
   operation_id        = "images-generations"
   api_name            = azurerm_api_management_api.openai.name
-  api_management_name = azurerm_api_management.main.name
-  resource_group_name = azurerm_resource_group.main.name
+  api_management_name = local.apim_name
+  resource_group_name = local.apim_resource_group_name
   display_name        = "Creates an image"
   method              = "POST"
   url_template        = "/deployments/{deployment-id}/images/generations"
@@ -364,8 +355,8 @@ resource "azurerm_api_management_api_operation" "images_generations" {
 
 resource "azurerm_api_management_api_policy" "openai" {
   api_name            = azurerm_api_management_api.openai.name
-  api_management_name = azurerm_api_management.main.name
-  resource_group_name = azurerm_resource_group.main.name
+  api_management_name = local.apim_name
+  resource_group_name = local.apim_resource_group_name
 
   xml_content = templatefile("${path.module}/policies/openai-api-policy.xml", {
     rate_limit_calls           = var.rate_limit_calls
@@ -385,12 +376,13 @@ resource "azurerm_api_management_api_policy" "openai" {
 }
 
 # -----------------------------------------------------------------------------
-# Diagnostic Settings for APIM
+# Diagnostic Settings for APIM (only for new APIM)
 # -----------------------------------------------------------------------------
 
 resource "azurerm_monitor_diagnostic_setting" "apim" {
+  count                      = var.use_existing_apim ? 0 : 1
   name                       = "diag-apim"
-  target_resource_id         = azurerm_api_management.main.id
+  target_resource_id         = local.apim_id
   log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
 
   enabled_log {
@@ -404,6 +396,4 @@ resource "azurerm_monitor_diagnostic_setting" "apim" {
   enabled_metric {
     category = "AllMetrics"
   }
-
-  depends_on = [azurerm_api_management.main]
 }

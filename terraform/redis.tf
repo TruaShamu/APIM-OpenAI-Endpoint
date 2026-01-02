@@ -18,8 +18,8 @@ resource "azapi_resource" "redis" {
 
   body = {
     sku = {
-      name     = var.redis_sku
-      capacity = 2
+      name = var.redis_sku
+      # Note: Balanced_B0 doesn't support capacity parameter
     }
     properties = {
       minimumTlsVersion = "1.2"
