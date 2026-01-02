@@ -19,6 +19,24 @@ data "azurerm_api_management" "existing" {
   resource_group_name = var.existing_apim_resource_group
 }
 
+# Add managed identity to existing APIM (if using existing)
+resource "azapi_update_resource" "apim_identity" {
+  count       = var.use_existing_apim ? 1 : 0
+  type        = "Microsoft.ApiManagement/service@2023-09-01-preview"
+  resource_id = data.azurerm_api_management.existing[0].id
+
+  body = {
+    identity = {
+      type = "UserAssigned"
+      userAssignedIdentities = {
+        (azurerm_user_assigned_identity.apim.id) = {}
+      }
+    }
+  }
+
+  depends_on = [azurerm_user_assigned_identity.apim]
+}
+
 resource "azurerm_api_management" "new" {
   count               = var.use_existing_apim ? 0 : 1
   name                = "${var.apim_name}-${local.suffix}"
@@ -87,7 +105,7 @@ resource "azurerm_api_management_named_value" "redis_password" {
   api_management_name = local.apim_name
   resource_group_name = local.apim_resource_group_name
   display_name        = "redis-password"
-  value               = jsondecode(data.azapi_resource_action.redis_keys.output).primaryKey
+  value               = data.azapi_resource_action.redis_keys.output.primaryKey
   secret              = true
 
   depends_on = [data.azapi_resource_action.redis_keys]
@@ -374,7 +392,8 @@ resource "azurerm_api_management_api_policy" "openai" {
     azurerm_api_management_api.openai,
     azurerm_api_management_backend.openai_primary,
     azurerm_api_management_backend.openai_secondary,
-    azurerm_api_management_named_value.redis_endpoint
+    azurerm_api_management_named_value.redis_endpoint,
+    azapi_update_resource.apim_identity
   ]
 }
 

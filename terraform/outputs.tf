@@ -76,7 +76,7 @@ output "redis_database_id" {
 
 output "redis_primary_access_key" {
   description = "Primary access key for Azure Managed Redis (sensitive)"
-  value       = jsondecode(data.azapi_resource_action.redis_keys.output).primaryKey
+  value       = data.azapi_resource_action.redis_keys.output.primaryKey
   sensitive   = true
 }
 
