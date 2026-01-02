@@ -85,9 +85,3 @@ import {
   to = azurerm_api_management_api_operation.images_generations
   id = "/subscriptions/${local.sub_id}/resourceGroups/${local.apim_rg}/providers/Microsoft.ApiManagement/service/${local.apim_svc}/apis/azure-openai-api/operations/images-generations"
 }
-
-# API Policy - may need to be imported if it was partially created
-import {
-  to = azurerm_api_management_api_policy.openai
-  id = "/subscriptions/${local.sub_id}/resourceGroups/${local.apim_rg}/providers/Microsoft.ApiManagement/service/${local.apim_svc}/apis/azure-openai-api"
-}
