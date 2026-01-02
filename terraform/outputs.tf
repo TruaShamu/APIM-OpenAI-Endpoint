@@ -8,27 +8,27 @@
 
 output "apim_name" {
   description = "Name of the API Management instance"
-  value       = azurerm_api_management.main.name
+  value       = local.apim_name
 }
 
 output "apim_gateway_url" {
   description = "Gateway URL of the API Management instance"
-  value       = azurerm_api_management.main.gateway_url
+  value       = local.apim_gateway_url
 }
 
 output "apim_developer_portal_url" {
   description = "Developer portal URL"
-  value       = azurerm_api_management.main.developer_portal_url
+  value       = local.apim_developer_portal_url
 }
 
 output "apim_management_api_url" {
   description = "Management API URL"
-  value       = azurerm_api_management.main.management_api_url
+  value       = local.apim_management_api_url
 }
 
 output "openai_api_endpoint" {
   description = "Full endpoint for Azure OpenAI API through APIM"
-  value       = "${azurerm_api_management.main.gateway_url}/openai"
+  value       = "${local.apim_gateway_url}/openai"
 }
 
 # -----------------------------------------------------------------------------
@@ -140,5 +140,5 @@ output "azure_portal_resource_group_url" {
 
 output "azure_portal_apim_url" {
   description = "Direct link to APIM in Azure Portal"
-  value       = "https://portal.azure.com/#@/resource${azurerm_api_management.main.id}"
+  value       = "https://portal.azure.com/#@/resource${local.apim_id}"
 }

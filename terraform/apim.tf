@@ -44,6 +44,9 @@ locals {
   apim_name                = var.use_existing_apim ? data.azurerm_api_management.existing[0].name : azurerm_api_management.new[0].name
   apim_resource_group_name = var.use_existing_apim ? data.azurerm_api_management.existing[0].resource_group_name : azurerm_api_management.new[0].resource_group_name
   apim_id                  = var.use_existing_apim ? data.azurerm_api_management.existing[0].id : azurerm_api_management.new[0].id
+  apim_gateway_url         = var.use_existing_apim ? data.azurerm_api_management.existing[0].gateway_url : azurerm_api_management.new[0].gateway_url
+  apim_developer_portal_url = var.use_existing_apim ? data.azurerm_api_management.existing[0].developer_portal_url : azurerm_api_management.new[0].developer_portal_url
+  apim_management_api_url  = var.use_existing_apim ? data.azurerm_api_management.existing[0].management_api_url : azurerm_api_management.new[0].management_api_url
 }
 
 # -----------------------------------------------------------------------------
