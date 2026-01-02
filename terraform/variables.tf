@@ -26,7 +26,7 @@ variable "location_primary" {
 variable "location_secondary" {
   description = "Secondary Azure region for Azure OpenAI (load balancing)"
   type        = string
-  default     = "westus2"
+  default     = "eastus"
 }
 
 variable "environment" {
@@ -103,26 +103,26 @@ variable "openai_deployments" {
       capacity   = 10
     },
     {
-      name       = "gpt-image-1"
-      model_name = "gpt-image-1"
-      version    = "2025-04-15"
-      capacity   = 5
+      name       = "dall-e-3"
+      model_name = "dall-e-3"
+      version    = "3.0"
+      capacity   = 1
     }
   ]
 }
 
 # -----------------------------------------------------------------------------
-# Azure Redis Enterprise Configuration
+# Azure Managed Redis Configuration
 # -----------------------------------------------------------------------------
 
-variable "redis_enterprise_sku" {
-  description = "SKU for Azure Redis Enterprise. Format: <tier>-<capacity>. Cheapest: Enterprise_E10-2 (~$250/mo)"
+variable "redis_sku" {
+  description = "SKU for Azure Managed Redis. Options: Balanced_B0, Balanced_B1, Balanced_B3, Balanced_B5, etc."
   type        = string
-  default     = "Enterprise_E10-2"
+  default     = "Balanced_B0"
 
   validation {
-    condition = can(regex("^(Enterprise_E(5|10|20|50|100|200|400)|EnterpriseFlash_F(300|700|1500))-[0-9]+$", var.redis_enterprise_sku))
-    error_message = "SKU must be in format '<tier>-<capacity>', e.g., 'Enterprise_E10-2'. Valid tiers: Enterprise_E5/E10/E20/E50/E100/E200/E400, EnterpriseFlash_F300/F700/F1500."
+    condition     = can(regex("^(Balanced_B[0-9]+|MemoryOptimized_M[0-9]+|ComputeOptimized_X[0-9]+|FlashOptimized_A[0-9]+)$", var.redis_sku))
+    error_message = "SKU must be a valid Azure Managed Redis SKU: Balanced_B*, MemoryOptimized_M*, ComputeOptimized_X*, or FlashOptimized_A*."
   }
 }
 

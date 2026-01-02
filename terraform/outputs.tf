@@ -56,27 +56,27 @@ output "openai_secondary_id" {
 }
 
 # -----------------------------------------------------------------------------
-# Redis Enterprise Outputs
+# Azure Managed Redis Outputs
 # -----------------------------------------------------------------------------
 
-output "redis_enterprise_hostname" {
-  description = "Hostname of the Redis Enterprise cluster"
-  value       = azurerm_redis_enterprise_cluster.main.hostname
+output "redis_hostname" {
+  description = "Hostname of the Azure Managed Redis cluster"
+  value       = "${azapi_resource.redis.name}.${azurerm_resource_group.main.location}.redis.azure.net"
 }
 
-output "redis_enterprise_id" {
-  description = "Resource ID of the Redis Enterprise cluster"
-  value       = azurerm_redis_enterprise_cluster.main.id
+output "redis_id" {
+  description = "Resource ID of the Azure Managed Redis cluster"
+  value       = azapi_resource.redis.id
 }
 
-output "redis_enterprise_database_id" {
-  description = "Resource ID of the Redis Enterprise database"
-  value       = azurerm_redis_enterprise_database.main.id
+output "redis_database_id" {
+  description = "Resource ID of the Azure Managed Redis database"
+  value       = azapi_resource.redis_database.id
 }
 
-output "redis_enterprise_primary_access_key" {
-  description = "Primary access key for Redis Enterprise (sensitive)"
-  value       = azurerm_redis_enterprise_database.main.primary_access_key
+output "redis_primary_access_key" {
+  description = "Primary access key for Azure Managed Redis (sensitive)"
+  value       = jsondecode(data.azapi_resource_action.redis_keys.output).primaryKey
   sensitive   = true
 }
 

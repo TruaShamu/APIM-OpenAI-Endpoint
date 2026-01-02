@@ -60,30 +60,30 @@ resource "azurerm_api_management_logger" "appinsights" {
 # Semantic caching is implemented via custom policy logic using send-request.
 
 resource "azurerm_api_management_named_value" "redis_endpoint" {
-  name                = "redis-enterprise-endpoint"
+  name                = "redis-endpoint"
   api_management_name = azurerm_api_management.main.name
   resource_group_name = azurerm_resource_group.main.name
-  display_name        = "redis-enterprise-endpoint"
-  value               = "https://${azurerm_redis_enterprise_cluster.main.hostname}:10000"
+  display_name        = "redis-endpoint"
+  value               = "https://${azapi_resource.redis.name}.${azurerm_resource_group.main.location}.redis.azure.net:10000"
   secret              = false
 
   depends_on = [
     azurerm_api_management.main,
-    azurerm_redis_enterprise_cluster.main
+    azapi_resource.redis
   ]
 }
 
 resource "azurerm_api_management_named_value" "redis_password" {
-  name                = "redis-enterprise-password"
+  name                = "redis-password"
   api_management_name = azurerm_api_management.main.name
   resource_group_name = azurerm_resource_group.main.name
-  display_name        = "redis-enterprise-password"
-  value               = azurerm_redis_enterprise_database.main.primary_access_key
+  display_name        = "redis-password"
+  value               = jsondecode(data.azapi_resource_action.redis_keys.output).primaryKey
   secret              = true
 
   depends_on = [
     azurerm_api_management.main,
-    azurerm_redis_enterprise_database.main
+    data.azapi_resource_action.redis_keys
   ]
 }
 
@@ -171,6 +171,7 @@ resource "azurerm_api_management_product" "openai" {
   description           = "Access to Azure OpenAI models through the LLM Gateway"
   subscription_required = true
   approval_required     = true
+  subscriptions_limit   = 100
   published             = true
   terms                 = "By subscribing, you agree to the usage policies and rate limits."
 

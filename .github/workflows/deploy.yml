@@ -63,10 +63,10 @@ jobs:
           resource_group_name  = "${{ vars.RESOURCE_GROUP_NAME || 'rg-llm-gateway' }}"
           apim_name            = "${{ vars.APIM_NAME || 'apim-llm-gateway' }}"
           location_primary     = "${{ vars.LOCATION_PRIMARY || 'westus' }}"
-          location_secondary   = "${{ vars.LOCATION_SECONDARY || 'westus2' }}"
+          location_secondary   = "${{ vars.LOCATION_SECONDARY || 'eastus' }}"
           environment          = "${{ vars.ENVIRONMENT || 'dev' }}"
           apim_sku_name        = "${{ vars.APIM_SKU || 'Developer' }}"
-          redis_enterprise_sku = "${{ vars.REDIS_SKU || 'Enterprise_E10-2' }}"
+          redis_sku            = "${{ vars.REDIS_SKU || 'Balanced_B0' }}"
           EOF
 
       - name: Terraform Init
