@@ -101,12 +101,6 @@ variable "openai_deployments" {
       model_name = "gpt-4o-mini"
       version    = "2024-07-18"
       capacity   = 10
-    },
-    {
-      name       = "dall-e-3"
-      model_name = "dall-e-3"
-      version    = "3.0"
-      capacity   = 1
     }
   ]
 }

@@ -12,7 +12,7 @@
 
 resource "azapi_resource" "redis" {
   type      = "Microsoft.Cache/redisEnterprise@2024-09-01-preview"
-  name      = "redis-${local.suffix}"
+  name      = "redis${local.suffix}"
   location  = azurerm_resource_group.main.location
   parent_id = azurerm_resource_group.main.id
 
